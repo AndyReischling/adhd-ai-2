@@ -33,13 +33,26 @@ export default function AnalysisPage() {
     const fetchScenarios = async () => {
       try {
         const result = await generateScenarios(company);
-        setData(result);
+
+        // Safely access horizons with fallbacks
+        const horizons = result?.horizons || {};
+        const safeResult: DoomsdayResponse = {
+          company: result?.company || company.name,
+          horizons: {
+            '1_year': Array.isArray(horizons['1_year']) ? horizons['1_year'] : [],
+            '5_year': Array.isArray(horizons['5_year']) ? horizons['5_year'] : [],
+            '10_year': Array.isArray(horizons['10_year']) ? horizons['10_year'] : [],
+            '50_year': Array.isArray(horizons['50_year']) ? horizons['50_year'] : [],
+          },
+        };
+
+        setData(safeResult);
 
         const allScenarios: DoomsdayScenario[] = [
-          ...result.horizons['1_year'],
-          ...result.horizons['5_year'],
-          ...result.horizons['10_year'],
-          ...result.horizons['50_year'],
+          ...safeResult.horizons['1_year'],
+          ...safeResult.horizons['5_year'],
+          ...safeResult.horizons['10_year'],
+          ...safeResult.horizons['50_year'],
         ];
         setScenarios(allScenarios);
       } catch (err) {
@@ -48,9 +61,9 @@ export default function AnalysisPage() {
       }
     };
 
-    // Show loading for minimum 10 seconds while API works
+    // Show loading for minimum 28 seconds — matches the agent deliberation dialogue
     const fetchPromise = fetchScenarios();
-    const timerPromise = new Promise((resolve) => setTimeout(resolve, 10000));
+    const timerPromise = new Promise((resolve) => setTimeout(resolve, 28000));
 
     Promise.all([fetchPromise, timerPromise]).then(() => {
       setLoading(false);

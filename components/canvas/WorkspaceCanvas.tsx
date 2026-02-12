@@ -120,9 +120,9 @@ export default function WorkspaceCanvas({ children }: WorkspaceCanvasProps) {
   return (
     <div
       ref={containerRef}
-      className="flex-1 relative bg-black-primary overflow-hidden"
+      className="flex-1 relative bg-black-primary overflow-hidden select-none"
       onMouseDown={onMouseDown}
-      style={{ cursor: isPanning ? 'grabbing' : 'default' }}
+      style={{ cursor: isPanning ? 'grabbing' : 'default', userSelect: 'none', WebkitUserSelect: 'none' }}
     >
       {/* Subtle dot grid background */}
       <div

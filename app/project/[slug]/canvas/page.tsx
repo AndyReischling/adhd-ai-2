@@ -227,7 +227,7 @@ export default function CanvasPage() {
   if (!company) return null;
 
   return (
-    <div className="fixed inset-0 top-16 bg-black-primary overflow-hidden flex">
+    <div className="fixed inset-0 top-16 bg-black-primary overflow-hidden flex select-none" style={{ userSelect: 'none' }}>
       {/* Left: Task Panel */}
       <TaskPanel />
 

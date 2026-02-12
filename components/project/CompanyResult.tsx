@@ -1,7 +1,7 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import Image from 'next/image';
 import { Company } from '@/types';
 
 interface CompanyResultProps {
@@ -11,6 +11,8 @@ interface CompanyResultProps {
 }
 
 export default function CompanyResult({ company, onClick, index }: CompanyResultProps) {
+  const [logoFailed, setLogoFailed] = useState(false);
+
   return (
     <motion.button
       initial={{ opacity: 0, y: 5 }}
@@ -19,19 +21,23 @@ export default function CompanyResult({ company, onClick, index }: CompanyResult
       onClick={() => onClick(company)}
       className="w-full flex items-center gap-4 px-4 py-3 hover:bg-gray-800 transition-colors duration-150 text-left border-b border-gray-800 last:border-0"
     >
-      {/* Company logo */}
+      {/* Company logo — plain img tag to avoid Next.js Image domain issues */}
       <div className="w-8 h-8 bg-gray-800 flex items-center justify-center flex-shrink-0 overflow-hidden">
-        <Image
-          src={company.logoUrl}
-          alt={company.name}
-          width={24}
-          height={24}
-          className="object-contain"
-          onError={(e) => {
-            (e.target as HTMLImageElement).style.display = 'none';
-          }}
-          unoptimized
-        />
+        {company.logoUrl && !logoFailed ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={company.logoUrl}
+            alt=""
+            width={24}
+            height={24}
+            className="object-contain"
+            onError={() => setLogoFailed(true)}
+          />
+        ) : (
+          <span className="font-mono text-[10px] text-gray-600">
+            {company.name.charAt(0)}
+          </span>
+        )}
       </div>
 
       {/* Company info */}

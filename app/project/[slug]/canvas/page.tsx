@@ -46,6 +46,9 @@ export default function CanvasPage() {
   const orchestratorRef = useRef<PhaseOrchestrator | null>(null);
   const startedRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  // Refs for stable access from the orchestrator (avoids stale closure)
+  const chatMessagesRef = useRef(chatMessages);
+  chatMessagesRef.current = chatMessages;
 
   const [showCombineIndicator, setShowCombineIndicator] = useState(false);
   const [isCombining, setIsCombining] = useState(false);
@@ -94,9 +97,9 @@ export default function CanvasPage() {
         },
         setPhase: (phase: string) => setCanvasPhase(phase as CanvasPhase),
         setComplete,
-        getMessages: () => chatMessages,
+        getMessages: () => chatMessagesRef.current || [],
       },
-      { company, scenarios: selectedScenarios }
+      { company, scenarios: selectedScenarios || [] }
     );
 
     orchestrator.start();
@@ -199,8 +202,8 @@ export default function CanvasPage() {
         let fullContent = '';
         await streamChat(
           respondingAgent,
-          [...chatMessages, userMsg],
-          { company: company!, scenarios: selectedScenarios },
+          [...(chatMessages || []), userMsg],
+          { company: company!, scenarios: selectedScenarios || [] },
           (token: string) => {
             fullContent += token;
             updateMessage(msgId, { content: fullContent });

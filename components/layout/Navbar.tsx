@@ -28,28 +28,22 @@ export default function Navbar() {
             const isActive = pathname === link.href;
             return (
               <div key={link.label} className="relative">
-                {link.disabled ? (
-                  <span className="font-mono text-xs tracking-[0.2em] text-gray-600">
-                    {link.label}
-                  </span>
-                ) : (
-                  <Link
-                    href={link.href}
-                    className={`font-mono text-xs tracking-[0.2em] transition-colors duration-200 ${
-                      isActive
-                        ? 'text-off-white'
-                        : 'text-gray-400 hover:text-off-white'
-                    }`}
-                  >
-                    {link.label}
-                    {isActive && (
-                      <motion.div
-                        className="absolute -bottom-1 left-0 right-0 h-[2px] bg-red-primary"
-                        layoutId="nav-underline"
-                      />
-                    )}
-                  </Link>
-                )}
+                <Link
+                  href={link.href}
+                  className={`font-mono text-xs tracking-[0.2em] transition-colors duration-200 ${
+                    isActive
+                      ? 'text-off-white'
+                      : 'text-gray-400 hover:text-off-white'
+                  }`}
+                >
+                  {link.label}
+                  {isActive && (
+                    <motion.div
+                      className="absolute -bottom-1 left-0 right-0 h-[2px] bg-red-primary"
+                      layoutId="nav-underline"
+                    />
+                  )}
+                </Link>
               </div>
             );
           })}
@@ -87,29 +81,20 @@ export default function Navbar() {
             transition={{ duration: 0.3 }}
           >
             <div className="px-6 py-4 flex flex-col gap-4">
-              {navLinks.map((link) =>
-                link.disabled ? (
-                  <span
-                    key={link.label}
-                    className="font-mono text-xs tracking-[0.2em] text-gray-600"
-                  >
-                    {link.label}
-                  </span>
-                ) : (
-                  <Link
-                    key={link.label}
-                    href={link.href}
-                    onClick={() => setMobileOpen(false)}
-                    className={`font-mono text-xs tracking-[0.2em] ${
-                      pathname === link.href
-                        ? 'text-red-primary'
-                        : 'text-gray-400'
-                    }`}
-                  >
-                    {link.label}
-                  </Link>
-                )
-              )}
+              {navLinks.map((link) => (
+                <Link
+                  key={link.label}
+                  href={link.href}
+                  onClick={() => setMobileOpen(false)}
+                  className={`font-mono text-xs tracking-[0.2em] ${
+                    pathname === link.href
+                      ? 'text-red-primary'
+                      : 'text-gray-400'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
             </div>
           </motion.div>
         )}

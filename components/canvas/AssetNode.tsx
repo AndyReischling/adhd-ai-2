@@ -5,7 +5,6 @@ import { motion } from 'framer-motion';
 import { CanvasAsset } from '@/types';
 import { getAgent } from '@/lib/agents';
 import { useCanvasStore } from '@/store/canvasStore';
-import StampLabel from '@/components/ui/StampLabel';
 
 interface AssetNodeProps {
   asset: CanvasAsset;
@@ -47,7 +46,6 @@ export default function AssetNode({ asset, onDragToAsset }: AssetNodeProps) {
         window.removeEventListener('mousemove', onMove);
         window.removeEventListener('mouseup', onUp);
 
-        // Check proximity to other assets for combination
         const finalX = dragRef.current.assetX + (upEvent.clientX - dragRef.current.startX) / viewport.zoom;
         const finalY = dragRef.current.assetY + (upEvent.clientY - dragRef.current.startY) / viewport.zoom;
 
@@ -76,18 +74,32 @@ export default function AssetNode({ asset, onDragToAsset }: AssetNodeProps) {
     final: 'opacity-100 border-gray-400',
   };
 
+  const stateLabel =
+    asset.state === 'draft'
+      ? 'WIP'
+      : asset.state === 'final'
+      ? 'APPROVED'
+      : null;
+
+  const stateLabelColor =
+    asset.state === 'draft'
+      ? '#C23B22'
+      : asset.state === 'final'
+      ? '#C4A44A'
+      : null;
+
   const renderContent = () => {
     switch (asset.type) {
       case 'sticky_note':
         return (
           <div
-            className="p-3 min-w-[140px] max-w-[180px]"
+            className="p-3 min-w-[120px] max-w-[160px]"
             style={{ backgroundColor: `${agentColor}15` }}
           >
-            <p className="font-body text-xs italic text-gray-300 leading-relaxed">
+            <p className="font-body text-[11px] italic text-gray-300 leading-relaxed">
               {asset.content}
             </p>
-            <div className="mt-2 font-mono text-[9px]" style={{ color: agentColor }}>
+            <div className="mt-2 font-mono text-[8px]" style={{ color: agentColor }}>
               — {agent?.name}
             </div>
           </div>
@@ -95,20 +107,14 @@ export default function AssetNode({ asset, onDragToAsset }: AssetNodeProps) {
 
       case 'ad_concept':
         return (
-          <div className="p-5 min-w-[260px] max-w-[320px] bg-gray-900">
-            {/* Crop marks */}
-            <div className="absolute -top-2 -left-2 w-4 h-4 border-t border-l border-gray-600" />
-            <div className="absolute -top-2 -right-2 w-4 h-4 border-t border-r border-gray-600" />
-            <div className="absolute -bottom-2 -left-2 w-4 h-4 border-b border-l border-gray-600" />
-            <div className="absolute -bottom-2 -right-2 w-4 h-4 border-b border-r border-gray-600" />
-
-            <div className="font-mono text-[9px] tracking-[0.3em] text-gray-600 mb-3">
+          <div className="p-4 min-w-[200px] max-w-[240px] bg-gray-900">
+            <div className="font-mono text-[8px] tracking-[0.3em] text-gray-600 mb-2">
               AD CONCEPT
             </div>
-            <h4 className="font-display text-lg text-off-white mb-2 leading-tight">
+            <h4 className="font-display text-sm text-off-white mb-1.5 leading-tight">
               {asset.title}
             </h4>
-            <p className="font-body text-sm text-gray-400 leading-relaxed">
+            <p className="font-body text-[11px] text-gray-400 leading-relaxed line-clamp-4">
               {asset.content}
             </p>
           </div>
@@ -116,15 +122,15 @@ export default function AssetNode({ asset, onDragToAsset }: AssetNodeProps) {
 
       case 'ooh_mockup':
         return (
-          <div className="p-5 min-w-[280px] max-w-[360px] bg-gray-800 border-4 border-gray-700">
-            <div className="font-mono text-[9px] tracking-[0.3em] text-gray-500 mb-3">
+          <div className="p-4 min-w-[200px] max-w-[240px] bg-gray-800">
+            <div className="font-mono text-[8px] tracking-[0.3em] text-gray-500 mb-2">
               OOH PLACEMENT
             </div>
-            <h4 className="font-display text-xl text-off-white mb-2 leading-tight">
+            <h4 className="font-display text-sm text-off-white mb-1.5 leading-tight">
               {asset.title}
             </h4>
-            <div className="w-full h-[2px] bg-red-primary mb-3" />
-            <p className="font-body text-sm text-gray-300 leading-relaxed">
+            <div className="w-full h-[2px] bg-red-primary mb-2" />
+            <p className="font-body text-[11px] text-gray-300 leading-relaxed line-clamp-4">
               {asset.content}
             </p>
           </div>
@@ -132,14 +138,14 @@ export default function AssetNode({ asset, onDragToAsset }: AssetNodeProps) {
 
       case 'messaging_framework':
         return (
-          <div className="p-5 min-w-[300px] max-w-[380px] bg-gray-900 font-mono">
-            <div className="text-[9px] tracking-[0.3em] text-red-primary mb-3">
-              MESSAGING FRAMEWORK — CLASSIFIED
+          <div className="p-4 min-w-[220px] max-w-[250px] bg-gray-900 font-mono">
+            <div className="text-[8px] tracking-[0.3em] text-red-primary mb-2">
+              MESSAGING FRAMEWORK
             </div>
-            <h4 className="text-sm text-off-white mb-3 tracking-[0.1em]">
+            <h4 className="text-[11px] text-off-white mb-2 tracking-[0.05em]">
               {asset.title}
             </h4>
-            <div className="text-xs text-gray-400 leading-relaxed whitespace-pre-wrap">
+            <div className="text-[10px] text-gray-400 leading-relaxed whitespace-pre-wrap line-clamp-6">
               {asset.content}
             </div>
           </div>
@@ -147,20 +153,18 @@ export default function AssetNode({ asset, onDragToAsset }: AssetNodeProps) {
 
       case 'manifesto':
         return (
-          <div className="p-6 min-w-[320px] max-w-[420px] bg-gray-900 border-2 border-gray-700 relative">
-            {/* Decorative corners */}
-            <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-gold-accent" />
-            <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-gold-accent" />
-            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-gold-accent" />
-            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-gold-accent" />
+          <div className="p-4 min-w-[220px] max-w-[260px] bg-gray-900 relative">
+            {/* Corner accents */}
+            <div className="absolute top-0 left-0 w-5 h-5 border-t-2 border-l-2 border-gold-accent" />
+            <div className="absolute bottom-0 right-0 w-5 h-5 border-b-2 border-r-2 border-gold-accent" />
 
-            <div className="font-accent text-sm tracking-[0.4em] text-gold-accent mb-4 text-center">
+            <div className="font-accent text-[10px] tracking-[0.3em] text-gold-accent mb-2 text-center">
               MANIFESTO
             </div>
-            <h4 className="font-display text-lg text-off-white mb-3 text-center">
+            <h4 className="font-display text-sm text-off-white mb-2 text-center leading-tight">
               {asset.title}
             </h4>
-            <p className="font-body text-sm text-gray-300 leading-[1.8] text-center">
+            <p className="font-body text-[11px] text-gray-300 leading-relaxed text-center line-clamp-5">
               {asset.content}
             </p>
           </div>
@@ -168,14 +172,14 @@ export default function AssetNode({ asset, onDragToAsset }: AssetNodeProps) {
 
       default: // text_card
         return (
-          <div className="p-4 min-w-[220px] max-w-[300px] bg-gray-900">
-            <div className="font-mono text-[9px] tracking-[0.2em] text-gray-600 mb-2">
+          <div className="p-3 min-w-[180px] max-w-[230px] bg-gray-900">
+            <div className="font-mono text-[8px] tracking-[0.2em] text-gray-600 mb-1.5">
               {asset.type.toUpperCase().replace('_', ' ')}
             </div>
-            <h4 className="font-display text-base text-off-white mb-2">
+            <h4 className="font-display text-sm text-off-white mb-1.5 leading-tight">
               {asset.title}
             </h4>
-            <p className="font-body text-xs text-gray-400 leading-relaxed">
+            <p className="font-body text-[11px] text-gray-400 leading-relaxed line-clamp-4">
               {asset.content}
             </p>
           </div>
@@ -185,6 +189,7 @@ export default function AssetNode({ asset, onDragToAsset }: AssetNodeProps) {
 
   return (
     <motion.div
+      data-asset="true"
       initial={{ scale: 0, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       transition={{
@@ -203,21 +208,36 @@ export default function AssetNode({ asset, onDragToAsset }: AssetNodeProps) {
       }}
       onMouseDown={handleMouseDown}
     >
-      {/* Agent attribution dot */}
+      {/* Agent attribution dot + name */}
       <div
-        className="absolute -top-1.5 -left-1.5 w-3 h-3 rounded-full"
-        style={{ backgroundColor: agentColor }}
-      />
+        className="absolute -top-2.5 left-2 flex items-center gap-1 px-1.5 py-0.5"
+        style={{ backgroundColor: '#0A0A0A' }}
+      >
+        <div
+          className="w-1.5 h-1.5 rounded-full"
+          style={{ backgroundColor: agentColor }}
+        />
+        <span
+          className="font-mono text-[8px] tracking-[0.1em]"
+          style={{ color: agentColor }}
+        >
+          {agent?.name}
+        </span>
+      </div>
 
-      {/* State stamps */}
-      {asset.state === 'draft' && (
-        <div className="absolute top-2 right-2">
-          <StampLabel text="WIP" variant="red" size="sm" />
-        </div>
-      )}
-      {asset.state === 'final' && (
-        <div className="absolute top-2 right-2">
-          <StampLabel text="APPROVED" variant="gold" size="sm" />
+      {/* State label — positioned BELOW the card, not overlapping content */}
+      {stateLabel && (
+        <div className="absolute -bottom-2.5 right-2">
+          <span
+            className="font-accent text-[8px] tracking-[0.2em] px-1.5 py-0.5 inline-block transform -rotate-[3deg]"
+            style={{
+              backgroundColor: '#0A0A0A',
+              color: stateLabelColor!,
+              border: `1px solid ${stateLabelColor}40`,
+            }}
+          >
+            {stateLabel}
+          </span>
         </div>
       )}
 

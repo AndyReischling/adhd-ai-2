@@ -27,6 +27,7 @@ export default function CanvasPage() {
     agentCursors,
     setAgentCursors,
     addAsset,
+    updateAsset,
     updateAssetState,
     updateAgentCursor,
     setCanvasPhase,
@@ -76,6 +77,7 @@ export default function CanvasPage() {
     const orchestrator = new PhaseOrchestrator(
       {
         addAsset,
+        updateAsset,
         updateAssetState,
         addChatMessage: addMessage,
         updateChatMessage: updateMessage,

@@ -1,6 +1,21 @@
 import { NextResponse } from 'next/server';
 import JSZip from 'jszip';
 
+interface AssetWithImage {
+  title: string;
+  content: string;
+  type: string;
+  createdBy: string;
+  state: string;
+  imageUrl?: string;
+}
+
+/** Extract base64 data from a data URI */
+function extractBase64(dataUri: string): string | null {
+  const match = dataUri.match(/^data:image\/\w+;base64,(.+)$/);
+  return match ? match[1] : null;
+}
+
 function slugify(text: string): string {
   return text
     .toLowerCase()
@@ -84,7 +99,7 @@ The campaign anticipates potential crises and prepares authentic, specific, and 
 
     // Manifesto
     const manifestos = (assets || []).filter(
-      (a: { type: string; state: string }) => a.type === 'manifesto' && a.state === 'final'
+      (a: AssetWithImage) => a.type === 'manifesto' && a.state === 'final'
     );
     if (manifestos.length > 0) {
       const manifesto = manifestos[manifestos.length - 1];
@@ -92,42 +107,56 @@ The campaign anticipates potential crises and prepares authentic, specific, and 
         'manifesto.md',
         `# ${manifesto.title}\n\n${manifesto.content}\n\n---\n\n*Written by Comrade Pixel for the ADHD AI Collective*\n`
       );
+      if (manifesto.imageUrl) {
+        const imgData = extractBase64(manifesto.imageUrl);
+        if (imgData) zip.file(`manifesto_visual.png`, imgData, { base64: true });
+      }
     }
 
     // Messaging Framework
     const frameworks = (assets || []).filter(
-      (a: { type: string; state: string }) => a.type === 'messaging_framework' && a.state === 'final'
+      (a: AssetWithImage) => a.type === 'messaging_framework' && a.state === 'final'
     );
     if (frameworks.length > 0) {
       const fw = frameworks[0];
       zip.file('messaging_framework.md', formatAssetForExport(fw));
-    }
-
-    // Ad Concepts
-    const adConcepts = (assets || []).filter(
-      (a: { type: string; state: string }) => a.type === 'ad_concept' && a.state === 'final'
-    );
-    if (adConcepts.length > 0) {
-      const adFolder = zip.folder('ad_concepts');
-      for (const ad of adConcepts) {
-        adFolder!.file(
-          `${slugify(ad.title)}.md`,
-          formatAssetForExport(ad)
-        );
+      if (fw.imageUrl) {
+        const imgData = extractBase64(fw.imageUrl);
+        if (imgData) zip.file(`messaging_framework_visual.png`, imgData, { base64: true });
       }
     }
 
-    // OOH Concepts
+    // Ad Concepts — PNGs + text
+    const adConcepts = (assets || []).filter(
+      (a: AssetWithImage) => a.type === 'ad_concept' && a.state === 'final'
+    );
+    if (adConcepts.length > 0) {
+      const adFolder = zip.folder('ad_concepts');
+      for (let i = 0; i < adConcepts.length; i++) {
+        const ad = adConcepts[i];
+        const slug = slugify(ad.title);
+        adFolder!.file(`${slug}_copy.md`, formatAssetForExport(ad));
+        if (ad.imageUrl) {
+          const imgData = extractBase64(ad.imageUrl);
+          if (imgData) adFolder!.file(`${slug}.png`, imgData, { base64: true });
+        }
+      }
+    }
+
+    // OOH Concepts — PNGs + text
     const oohConcepts = (assets || []).filter(
-      (a: { type: string; state: string }) => a.type === 'ooh_mockup' && a.state === 'final'
+      (a: AssetWithImage) => a.type === 'ooh_mockup' && a.state === 'final'
     );
     if (oohConcepts.length > 0) {
       const oohFolder = zip.folder('ooh_concepts');
-      for (const ooh of oohConcepts) {
-        oohFolder!.file(
-          `${slugify(ooh.title)}.md`,
-          formatAssetForExport(ooh)
-        );
+      for (let i = 0; i < oohConcepts.length; i++) {
+        const ooh = oohConcepts[i];
+        const slug = slugify(ooh.title);
+        oohFolder!.file(`${slug}_copy.md`, formatAssetForExport(ooh));
+        if (ooh.imageUrl) {
+          const imgData = extractBase64(ooh.imageUrl);
+          if (imgData) oohFolder!.file(`${slug}.png`, imgData, { base64: true });
+        }
       }
     }
 

@@ -48,6 +48,8 @@ export interface CanvasAsset {
   type: AssetType;
   title: string;
   content: string;
+  imageUrl?: string; // Generated PNG URL (data URI or blob URL)
+  imagePrompt?: string; // The prompt used to generate the image
   position: { x: number; y: number };
   state: AssetState;
   createdBy: string;

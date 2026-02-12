@@ -9,6 +9,7 @@ interface CanvasState {
   isComplete: boolean;
 
   addAsset: (asset: CanvasAsset) => void;
+  updateAsset: (id: string, update: Partial<CanvasAsset>) => void;
   updateAssetPosition: (id: string, pos: { x: number; y: number }) => void;
   updateAssetState: (id: string, state: AssetState) => void;
   removeAsset: (id: string) => void;
@@ -72,6 +73,13 @@ export const useCanvasStore = create<CanvasState>((set) => ({
 
   addAsset: (asset) =>
     set((state) => ({ assets: [...state.assets, asset] })),
+
+  updateAsset: (id, update) =>
+    set((state) => ({
+      assets: state.assets.map((a) =>
+        a.id === id ? { ...a, ...update } : a
+      ),
+    })),
 
   updateAssetPosition: (id, pos) =>
     set((state) => ({

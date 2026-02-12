@@ -1,9 +1,13 @@
 import { CanvasAsset, ChatMessage, DoomsdayScenario, Company, AssetType } from '@/types';
 import { createAsset, getNextPosition, resetLayoutCounters } from './assetFactory';
-import { generateAsset, streamChat } from '@/lib/api';
+import { generateAsset, generateImage, streamChat } from '@/lib/api';
+
+// Asset types that should get visual image generation
+const VISUAL_ASSET_TYPES: AssetType[] = ['ad_concept', 'ooh_mockup', 'manifesto'];
 
 interface OrchestratorCallbacks {
   addAsset: (asset: CanvasAsset) => void;
+  updateAsset: (id: string, update: Partial<CanvasAsset>) => void;
   updateAssetState: (id: string, state: 'draft' | 'review' | 'final') => void;
   addChatMessage: (message: ChatMessage) => void;
   updateChatMessage: (id: string, update: Partial<ChatMessage>) => void;
@@ -95,10 +99,31 @@ async function createAssetFromAPI(
     callbacks.addAsset(asset);
     callbacks.setCursorState(agentId, 'working', pos);
 
+    // Trigger image generation in background for visual asset types
+    if (VISUAL_ASSET_TYPES.includes(assetType)) {
+      const scenarioTitle = context.scenarios?.[0]?.title || 'crisis scenario';
+      generateImage(
+        assetType,
+        asset.title,
+        asset.content,
+        context.company.name,
+        scenarioTitle,
+        agentId
+      ).then((result) => {
+        if (result.imageUrl) {
+          callbacks.updateAsset(asset.id, {
+            imageUrl: result.imageUrl,
+            imagePrompt: result.revisedPrompt,
+          });
+        }
+      }).catch((err) => {
+        console.error(`Image generation failed for ${asset.id}:`, err);
+      });
+    }
+
     return asset;
   } catch (err) {
     console.error(`Asset creation failed for ${agentId}:`, err);
-    // Create a fallback asset
     const asset = createAsset({
       type: assetType,
       title: 'Draft in Progress',

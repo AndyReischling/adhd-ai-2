@@ -86,6 +86,32 @@ export async function generateAsset(
   return res.json();
 }
 
+/**
+ * Generate a visual PNG for a canvas asset using OpenAI image generation.
+ * Returns the image as a data URI, or null if generation fails/not configured.
+ */
+export async function generateImage(
+  assetType: string,
+  title: string,
+  content: string,
+  company: string,
+  scenario: string,
+  agentId: string
+): Promise<{ imageUrl: string | null; revisedPrompt?: string }> {
+  try {
+    const res = await fetch(`${API_BASE}/image`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assetType, title, content, company, scenario, agentId }),
+    });
+
+    const data = await res.json();
+    return { imageUrl: data.imageUrl || null, revisedPrompt: data.revisedPrompt };
+  } catch {
+    return { imageUrl: null };
+  }
+}
+
 export async function combineAssets(
   assetA: CanvasAsset,
   assetB: CanvasAsset,

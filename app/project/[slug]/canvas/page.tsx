@@ -44,9 +44,10 @@ export default function CanvasPage() {
 
   const cursorEngineRef = useRef<CursorEngine | null>(null);
   const orchestratorRef = useRef<PhaseOrchestrator | null>(null);
-  const startedRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  // Refs for stable access from the orchestrator (avoids stale closure)
+  const mountedRef = useRef(true);
+
+  // Keep a live ref to chatMessages so the orchestrator always reads the latest
   const chatMessagesRef = useRef(chatMessages);
   chatMessagesRef.current = chatMessages;
 
@@ -60,43 +61,58 @@ export default function CanvasPage() {
     }
   }, [company, router]);
 
-  // Initialize and start cursor engine + orchestrator
+  // Initialize cursor engine + orchestrator
   useEffect(() => {
-    if (!company || startedRef.current) return;
-    startedRef.current = true;
+    if (!company) return;
+    mountedRef.current = true;
+
+    // Guard all state setters so they no-op after unmount
+    const guardedSet = <T extends unknown[], R>(fn: (...args: T) => R) => {
+      return (...args: T): R | undefined => {
+        if (!mountedRef.current) return undefined;
+        return fn(...args);
+      };
+    };
 
     const engine = new CursorEngine(agentCursors, (updated) => {
-      setAgentCursors(updated);
+      if (mountedRef.current) setAgentCursors(updated);
     });
 
-    // Set workspace size based on available space
-    const workspaceWidth = Math.max(800, window.innerWidth - 260 - 350 - 20);
-    const workspaceHeight = Math.max(400, window.innerHeight - 64 - 20);
+    const workspaceWidth = Math.max(800, (typeof window !== 'undefined' ? window.innerWidth : 1200) - 260 - 350 - 20);
+    const workspaceHeight = Math.max(400, (typeof window !== 'undefined' ? window.innerHeight : 800) - 64 - 20);
     engine.setWorkspaceSize(workspaceWidth, workspaceHeight);
-
     engine.start();
     cursorEngineRef.current = engine;
 
     const orchestrator = new PhaseOrchestrator(
       {
-        addAsset,
-        updateAsset,
-        updateAssetState,
-        addChatMessage: addMessage,
-        updateChatMessage: updateMessage,
+        addAsset: guardedSet(addAsset),
+        updateAsset: guardedSet(updateAsset),
+        updateAssetState: guardedSet(updateAssetState),
+        addChatMessage: guardedSet(addMessage),
+        updateChatMessage: guardedSet(updateMessage),
         setCursorState: (agentId, state, target) => {
-          updateAgentCursor(agentId, {
-            state: state as 'idle' | 'working' | 'discussing' | 'reviewing' | 'creating',
-            ...(target ? { targetPosition: target } : {}),
-          });
-          engine.setCursorState(
-            agentId,
-            state as 'idle' | 'working' | 'discussing' | 'reviewing' | 'creating',
-            target
-          );
+          if (!mountedRef.current) return;
+          try {
+            updateAgentCursor(agentId, {
+              state: state as 'idle' | 'working' | 'discussing' | 'reviewing' | 'creating',
+              ...(target ? { targetPosition: target } : {}),
+            });
+            engine.setCursorState(
+              agentId,
+              state as 'idle' | 'working' | 'discussing' | 'reviewing' | 'creating',
+              target
+            );
+          } catch (e) {
+            console.error('setCursorState error:', e);
+          }
         },
-        setPhase: (phase: string) => setCanvasPhase(phase as CanvasPhase),
-        setComplete,
+        setPhase: (phase: string) => {
+          if (mountedRef.current) setCanvasPhase(phase as CanvasPhase);
+        },
+        setComplete: (v: boolean) => {
+          if (mountedRef.current) setComplete(v);
+        },
         getMessages: () => chatMessagesRef.current || [],
       },
       { company, scenarios: selectedScenarios || [] }
@@ -106,6 +122,7 @@ export default function CanvasPage() {
     orchestratorRef.current = orchestrator;
 
     return () => {
+      mountedRef.current = false;
       engine.destroy();
       orchestrator.stop();
     };
@@ -114,7 +131,7 @@ export default function CanvasPage() {
 
   // Update cursor engine with latest assets
   useEffect(() => {
-    cursorEngineRef.current?.setAssets(assets);
+    cursorEngineRef.current?.setAssets(assets || []);
   }, [assets]);
 
   // Auto-scroll chat
@@ -125,9 +142,9 @@ export default function CanvasPage() {
   // Handle asset combination via drag
   const handleDragToAsset = useCallback(
     async (draggedId: string, targetId: string) => {
-      if (isCombining) return;
-      const assetA = assets.find((a) => a.id === draggedId);
-      const assetB = assets.find((a) => a.id === targetId);
+      if (isCombining || !company) return;
+      const assetA = (assets || []).find((a) => a.id === draggedId);
+      const assetB = (assets || []).find((a) => a.id === targetId);
       if (!assetA || !assetB) return;
 
       setIsCombining(true);
@@ -135,31 +152,34 @@ export default function CanvasPage() {
 
       try {
         const result = await apiCombineAssets(assetA, assetB, {
-          company: company!,
-          scenarios: selectedScenarios,
+          company,
+          scenarios: selectedScenarios || [],
         });
 
-        for (const msg of result.conversation) {
-          const chatMsg: ChatMessageType = {
-            id: `combine-${Date.now()}-${Math.random()}`,
-            agentId: msg.agentId,
-            content: msg.content,
-            timestamp: new Date(),
-            isComplete: true,
-          };
-          addMessage(chatMsg);
-          await new Promise((r) => setTimeout(r, 500));
+        if (result?.conversation) {
+          for (const msg of result.conversation) {
+            const chatMsg: ChatMessageType = {
+              id: `combine-${Date.now()}-${Math.random()}`,
+              agentId: msg.agentId,
+              content: msg.content,
+              timestamp: new Date(),
+              isComplete: true,
+            };
+            addMessage(chatMsg);
+            await new Promise((r) => setTimeout(r, 500));
+          }
         }
 
         const newAsset = createCombinedAsset(assetA, assetB, {
-          type: result.newAsset.type,
-          title: result.newAsset.title,
-          content: result.newAsset.content,
+          type: result?.newAsset?.type,
+          title: result?.newAsset?.title || 'Combined Asset',
+          content: result?.newAsset?.content || '',
         });
         addAsset(newAsset);
         updateAssetState(draggedId, 'review');
         updateAssetState(targetId, 'review');
-      } catch {
+      } catch (err) {
+        console.error('Combine failed:', err);
         const newAsset = createCombinedAsset(assetA, assetB, {
           title: `${assetA.title} × ${assetB.title}`,
           content: `${assetA.content}\n\n${assetB.content}`,
@@ -176,6 +196,8 @@ export default function CanvasPage() {
   // Handle user chat message
   const handleChatSend = useCallback(
     async (text: string, taggedAgentId?: string) => {
+      if (!company) return;
+
       const userMsg: ChatMessageType = {
         id: `user-${Date.now()}`,
         agentId: 'user',
@@ -202,30 +224,34 @@ export default function CanvasPage() {
         let fullContent = '';
         await streamChat(
           respondingAgent,
-          [...(chatMessages || []), userMsg],
-          { company: company!, scenarios: selectedScenarios || [] },
+          [...(chatMessagesRef.current || []), userMsg],
+          { company, scenarios: selectedScenarios || [] },
           (token: string) => {
             fullContent += token;
-            updateMessage(msgId, { content: fullContent });
+            if (mountedRef.current) updateMessage(msgId, { content: fullContent });
           },
           () => {
-            updateMessage(msgId, { isComplete: true, content: fullContent });
-            setTyping(respondingAgent, false);
+            if (mountedRef.current) {
+              updateMessage(msgId, { isComplete: true, content: fullContent });
+              setTyping(respondingAgent, false);
+            }
           }
         );
       } catch {
-        updateMessage(msgId, {
-          content: 'THE APPARATUS HAS ENCOUNTERED A TEMPORARY CONTRADICTION.',
-          isComplete: true,
-        });
-        setTyping(respondingAgent, false);
+        if (mountedRef.current) {
+          updateMessage(msgId, {
+            content: 'THE APPARATUS HAS ENCOUNTERED A TEMPORARY CONTRADICTION.',
+            isComplete: true,
+          });
+          setTyping(respondingAgent, false);
+        }
       }
     },
-    [addMessage, updateMessage, setTyping, chatMessages, company, selectedScenarios]
+    [addMessage, updateMessage, setTyping, company, selectedScenarios]
   );
 
   const phaseIndex = ['research', 'ideation', 'production', 'finalization', 'export', 'complete'].indexOf(canvasPhase);
-  const displayPhase = Math.min(phaseIndex, 4);
+  const displayPhase = Math.min(Math.max(phaseIndex, 0), 4);
 
   if (!company) return null;
 
@@ -236,7 +262,7 @@ export default function CanvasPage() {
 
       {/* Center: Workspace Canvas */}
       <WorkspaceCanvas>
-        {assets.map((asset) => (
+        {(assets || []).map((asset) => (
           <AssetNode
             key={asset.id}
             asset={asset}
@@ -247,7 +273,6 @@ export default function CanvasPage() {
 
       {/* Right: Agent Dialogue Panel */}
       <div className="w-[350px] flex-shrink-0 bg-gray-900/95 border-l border-gray-800 flex flex-col">
-        {/* Header */}
         <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between flex-shrink-0">
           <span className="font-mono text-xs tracking-[0.15em] text-off-white font-bold">
             AGENT DIALOGUE
@@ -257,15 +282,13 @@ export default function CanvasPage() {
           </span>
         </div>
 
-        {/* Messages */}
         <div className="flex-1 overflow-y-auto">
-          {chatMessages.map((msg) => (
+          {(chatMessages || []).map((msg) => (
             <ChatMessageComponent key={msg.id} message={msg} />
           ))}
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input */}
         <ChatInput onSend={handleChatSend} />
       </div>
 

@@ -19,6 +19,7 @@ export class CursorEngine {
   private time: number = 0;
   private workspaceWidth: number = 1000;
   private workspaceHeight: number = 600;
+  private destroyed: boolean = false;
 
   constructor(cursors: AgentCursor[], onUpdate: CursorUpdateCallback) {
     this.cursors = cursors.map((c) => {
@@ -164,18 +165,24 @@ export class CursorEngine {
       };
     }
 
-    this.onUpdate([
-      ...this.cursors.map((c) => ({
-        ...c,
-        position: { ...c.position },
-        targetPosition: { ...c.targetPosition },
-      })),
-    ]);
-    this.frameId = requestAnimationFrame(this.tick);
+    if (!this.destroyed) {
+      try {
+        this.onUpdate([
+          ...this.cursors.map((c) => ({
+            ...c,
+            position: { ...c.position },
+            targetPosition: { ...c.targetPosition },
+          })),
+        ]);
+      } catch (e) {
+        console.error('CursorEngine update error:', e);
+      }
+      this.frameId = requestAnimationFrame(this.tick);
+    }
   };
 
   start() {
-    if (!this.frameId) {
+    if (!this.frameId && !this.destroyed) {
       this.frameId = requestAnimationFrame(this.tick);
     }
   }
@@ -188,6 +195,7 @@ export class CursorEngine {
   }
 
   destroy() {
+    this.destroyed = true;
     this.stop();
   }
 }

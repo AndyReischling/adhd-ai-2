@@ -16,8 +16,9 @@ export default function AssetNode({ asset, onDragToAsset }: AssetNodeProps) {
   const assets = useCanvasStore((s) => s.assets);
   const viewport = useCanvasStore((s) => s.viewport);
   const [isDragging, setIsDragging] = useState(false);
-  const [imageExpanded, setImageExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const dragRef = useRef({ startX: 0, startY: 0, assetX: 0, assetY: 0 });
+  const didDragRef = useRef(false);
 
   const agent = getAgent(asset.createdBy);
   const agentColor = agent?.color || '#C23B22';
@@ -26,6 +27,7 @@ export default function AssetNode({ asset, onDragToAsset }: AssetNodeProps) {
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
+      didDragRef.current = false;
       setIsDragging(true);
       dragRef.current = {
         startX: e.clientX,
@@ -35,12 +37,18 @@ export default function AssetNode({ asset, onDragToAsset }: AssetNodeProps) {
       };
 
       const onMove = (moveEvent: MouseEvent) => {
-        const dx = (moveEvent.clientX - dragRef.current.startX) / viewport.zoom;
-        const dy = (moveEvent.clientY - dragRef.current.startY) / viewport.zoom;
-        updateAssetPosition(asset.id, {
-          x: dragRef.current.assetX + dx,
-          y: dragRef.current.assetY + dy,
-        });
+        const dx = moveEvent.clientX - dragRef.current.startX;
+        const dy = moveEvent.clientY - dragRef.current.startY;
+        // Only start dragging if moved more than 4px (otherwise it's a click)
+        if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+          didDragRef.current = true;
+        }
+        if (didDragRef.current) {
+          updateAssetPosition(asset.id, {
+            x: dragRef.current.assetX + dx / viewport.zoom,
+            y: dragRef.current.assetY + dy / viewport.zoom,
+          });
+        }
       };
 
       const onUp = (upEvent: MouseEvent) => {
@@ -48,15 +56,21 @@ export default function AssetNode({ asset, onDragToAsset }: AssetNodeProps) {
         window.removeEventListener('mousemove', onMove);
         window.removeEventListener('mouseup', onUp);
 
+        if (!didDragRef.current) {
+          // It was a click, not a drag — open expanded view
+          setExpanded(true);
+          return;
+        }
+
         const finalX = dragRef.current.assetX + (upEvent.clientX - dragRef.current.startX) / viewport.zoom;
         const finalY = dragRef.current.assetY + (upEvent.clientY - dragRef.current.startY) / viewport.zoom;
 
         if (onDragToAsset) {
           for (const other of assets) {
             if (other.id === asset.id) continue;
-            const dx = Math.abs(finalX - other.position.x);
-            const dy = Math.abs(finalY - other.position.y);
-            if (dx < 50 && dy < 50) {
+            const ddx = Math.abs(finalX - other.position.x);
+            const ddy = Math.abs(finalY - other.position.y);
+            if (ddx < 50 && ddy < 50) {
               onDragToAsset(asset.id, other.id);
               break;
             }
@@ -130,7 +144,6 @@ export default function AssetNode({ asset, onDragToAsset }: AssetNodeProps) {
 
         {/* ── Content: IMAGE or TEXT ── */}
         {hasImage ? (
-          /* Image-based asset */
           <div className="p-2">
             <div className="font-mono text-[7px] tracking-[0.2em] text-gray-600 mb-1.5 px-1">
               {typeLabel}
@@ -139,19 +152,13 @@ export default function AssetNode({ asset, onDragToAsset }: AssetNodeProps) {
             <img
               src={asset.imageUrl}
               alt={asset.title}
-              className="w-full rounded-sm cursor-pointer"
-              style={{ imageRendering: 'auto' }}
-              onClick={(e) => {
-                e.stopPropagation();
-                setImageExpanded(true);
-              }}
+              className="w-full rounded-sm"
             />
-            <h4 className="font-display text-[11px] text-off-white mt-1.5 px-1 leading-tight line-clamp-2">
+            <h4 className="font-display text-[11px] text-off-white mt-1.5 px-1 leading-tight">
               {asset.title}
             </h4>
           </div>
         ) : (
-          /* Text-based asset (fallback) */
           <div className="p-3 min-w-[180px] max-w-[230px]">
             <div className="font-mono text-[8px] tracking-[0.2em] text-gray-600 mb-1.5">
               {typeLabel}
@@ -159,13 +166,13 @@ export default function AssetNode({ asset, onDragToAsset }: AssetNodeProps) {
             <h4 className="font-display text-sm text-off-white mb-1.5 leading-tight">
               {asset.title}
             </h4>
-            <p className="font-body text-[11px] text-gray-400 leading-relaxed line-clamp-4">
+            <p className="font-body text-[11px] text-gray-400 leading-relaxed">
               {asset.content}
             </p>
           </div>
         )}
 
-        {/* Loading indicator while image is being generated */}
+        {/* Loading indicator */}
         {asset.state === 'draft' && !hasImage && asset.type !== 'sticky_note' && asset.type !== 'text_card' && (
           <div className="px-3 pb-2">
             <div className="flex items-center gap-1.5">
@@ -176,29 +183,65 @@ export default function AssetNode({ asset, onDragToAsset }: AssetNodeProps) {
         )}
       </motion.div>
 
-      {/* ── Expanded image lightbox ── */}
-      {imageExpanded && hasImage && (
+      {/* ── Expanded lightbox (click to read full text or view full image) ── */}
+      {expanded && (
         <div
           className="fixed inset-0 z-[9000] bg-black-primary/90 backdrop-blur-sm flex items-center justify-center p-8"
-          onClick={() => setImageExpanded(false)}
+          style={{ userSelect: 'text', cursor: 'default' }}
+          onClick={() => setExpanded(false)}
         >
-          <div className="relative max-w-3xl max-h-[85vh]" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="relative max-w-2xl w-full max-h-[85vh] overflow-y-auto bg-gray-900 border border-gray-700"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close button */}
             <button
-              onClick={() => setImageExpanded(false)}
-              className="absolute -top-8 right-0 font-mono text-xs text-gray-400 hover:text-off-white"
+              onClick={() => setExpanded(false)}
+              className="absolute top-3 right-3 font-mono text-xs text-gray-400 hover:text-off-white z-10"
             >
               CLOSE ×
             </button>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={asset.imageUrl}
-              alt={asset.title}
-              className="max-w-full max-h-[80vh] object-contain rounded-sm"
-            />
-            <div className="mt-3 text-center">
-              <h3 className="font-display text-lg text-off-white">{asset.title}</h3>
-              <p className="font-mono text-[10px] text-gray-400 mt-1">
-                {typeLabel} — by {agent?.name}
+
+            {/* Header */}
+            <div className="px-6 pt-5 pb-3 border-b border-gray-800">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: agentColor }} />
+                <span className="font-mono text-[10px] tracking-[0.15em]" style={{ color: agentColor }}>
+                  {agent?.name}
+                </span>
+                <span className="font-mono text-[10px] text-gray-600 ml-2">
+                  {typeLabel}
+                </span>
+                {stateLabel && (
+                  <span
+                    className="font-accent text-[9px] tracking-[0.2em] px-1.5 py-0.5 ml-auto"
+                    style={{ color: stateLabelColor!, border: `1px solid ${stateLabelColor}40` }}
+                  >
+                    {stateLabel}
+                  </span>
+                )}
+              </div>
+              <h2 className="font-display text-2xl text-off-white leading-tight">
+                {asset.title}
+              </h2>
+            </div>
+
+            {/* Image if present */}
+            {hasImage && (
+              <div className="px-6 pt-4">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={asset.imageUrl}
+                  alt={asset.title}
+                  className="w-full rounded-sm"
+                />
+              </div>
+            )}
+
+            {/* Full text content — no truncation */}
+            <div className="px-6 py-5">
+              <p className="font-body text-sm text-gray-300 leading-[1.8] whitespace-pre-wrap">
+                {asset.content}
               </p>
             </div>
           </div>

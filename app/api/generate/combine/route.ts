@@ -16,21 +16,11 @@ export async function POST(req: Request) {
     const { assetA, assetB, context } = await req.json();
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
-
     if (!apiKey) {
-      // Return mock combination
-      return NextResponse.json({
-        conversation: [
-          { agentId: 'boris', content: `These two ideas DEMAND to be united. The combination will be MAGNIFICENT.` },
-          { agentId: 'gremlin', content: `ok yeah actually this works. the energy is right. dont overthink it.` },
-          { agentId: 'comrade-pixel', content: `What if the merged piece starts where one ends and ends where the other begins. A loop. A promise.` },
-        ],
-        newAsset: {
-          type: assetA.type || 'text_card',
-          title: `${assetA.title} × ${assetB.title}`,
-          content: `A synthesis of two ideas: the structural integrity of "${assetA.title}" meets the creative vision of "${assetB.title}." The result is something neither could have been alone — a piece that acknowledges the crisis with specificity while reaching for something resembling grace.`,
-        },
-      });
+      return NextResponse.json(
+        { error: 'ANTHROPIC_API_KEY is not configured' },
+        { status: 500 }
+      );
     }
 
     const client = new Anthropic({ apiKey });

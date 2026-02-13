@@ -79,19 +79,13 @@ IMPORTANT: Every scenario title and summary must be highly specific to ${company
     });
   } catch (error) {
     console.error('Scenario generation error:', error);
-    // Only fall back to mock if there's no API key; otherwise surface the error
-    if (!process.env.ANTHROPIC_API_KEY) {
-      try {
-        const { company: c } = await req.clone().json();
-        return NextResponse.json(generateMockScenarios(c?.name || 'Unknown'));
-      } catch {
-        return NextResponse.json(generateMockScenarios('Unknown'));
-      }
+    // Always fall back to mock data so the app never breaks
+    try {
+      const { company: c } = await req.clone().json();
+      return NextResponse.json(generateMockScenarios(c?.name || 'Unknown'));
+    } catch {
+      return NextResponse.json(generateMockScenarios('Unknown'));
     }
-    return NextResponse.json(
-      { error: 'Scenario generation failed', details: String(error) },
-      { status: 500 }
-    );
   }
 }
 

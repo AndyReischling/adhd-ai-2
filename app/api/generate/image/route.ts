@@ -1,23 +1,23 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-// Visual style direction per asset type
+// Visual style direction per asset type — NO TEXT in the image
 const assetStyleDirections: Record<string, string> = {
-  ad_concept: `Design a high-end print advertisement. Clean, award-winning layout. Think Pentagram or Collins-level craft. The ad should feel like a full-page spread in The New York Times or Wallpaper* magazine. Bold serif headlines, considered whitespace, strong visual hierarchy. No stock photo energy — this should feel intentional, provocative, and beautifully composed. Include crop marks at the corners.`,
+  ad_concept: `Create a powerful visual composition for a high-end print advertisement. NO TEXT, NO WORDS, NO LETTERS, NO TYPOGRAPHY in the image. Focus entirely on visual imagery, photography, and composition. Think of the visual half of an award-winning Pentagram or Collins campaign — the striking image that sits above or beside the headline. Cinematic, evocative, emotionally charged. The image should tell a story on its own. Photographic or hyper-realistic illustration style.`,
 
-  ooh_mockup: `Design an out-of-home billboard or transit poster mockup. Show the ad placed in an urban environment — a bus shelter, building facade, or highway billboard. The design should be striking from a distance with a dominant headline and minimal supporting elements. Soviet Constructivist influence: bold geometry, stark contrasts, propaganda poster energy but with modern high-design polish.`,
+  ooh_mockup: `Create a striking visual scene for an out-of-home billboard campaign. NO TEXT, NO WORDS, NO LETTERS in the image. Show a powerful visual concept that would stop someone in their tracks on a city street. The image should work as a standalone visual — dramatic, symbolic, emotionally resonant. Can include urban environments, dramatic lighting, symbolic objects, or powerful human moments. Cinematic photography or photorealistic rendering.`,
 
-  manifesto: `Design a full-page manifesto poster. Think broadsheet declaration meets typographic art. Large display serif typography. The text should be the hero — arranged with visual rhythm, varied sizes, and deliberate line breaks. Minimal color — primarily black and white with one accent color (red or gold). The layout should feel like a political declaration or a gallery exhibition poster.`,
+  manifesto: `Create an evocative visual composition for a manifesto poster. NO TEXT, NO WORDS, NO LETTERS, NO TYPOGRAPHY in the image. Instead create a powerful abstract or symbolic visual — could be a dramatic landscape, an architectural space, a symbolic object, or an abstract composition. The mood should be somber, contemplative, and powerful. Think gallery-quality fine art photography or painterly illustration. Dark, moody, with subtle accent color (red or gold).`,
 
-  messaging_framework: `Design a structured corporate communications document as a designed artifact. Think classified document meets information design. Monospace type, ruled sections, classification stamps ("CONFIDENTIAL", "FOR INTERNAL USE"), red accent marks. Grid-based layout with clear hierarchy. The aesthetic is Soviet bureaucratic form meets Swiss modernist typography.`,
+  messaging_framework: `Create a visual composition suggesting structured corporate communications. NO TEXT, NO WORDS, NO LETTERS. Show visual elements that suggest documentation: grids, ruled lines, classification marks as abstract shapes, red accent marks, folder edges, paper textures. The aesthetic is Soviet bureaucratic form meets Swiss modernist design. Abstract, geometric, institutional.`,
 
-  text_card: `Design a research card or strategic brief as a designed object. Clean typography, data visualization elements, structured information blocks. Think intelligence dossier meets design annual. Dark background, light text, precise grid alignment. Include subtle classification stamps or reference numbers.`,
+  text_card: `Create an abstract visual composition suggesting intelligence analysis. NO TEXT, NO WORDS, NO LETTERS. Show visual elements: data visualization shapes, network diagrams as abstract art, dark background with glowing connection points, radar-like graphics. Think intelligence dossier as abstract art. Dark, precise, institutional.`,
 
-  sticky_note: `Design a handwritten creative note on colored paper. Informal, energetic handwriting style. Sketches, arrows, underlines. The note should feel like a genuine artifact from a brainstorm — raw, immediate, alive with creative energy.`,
+  sticky_note: `Create a small abstract visual sketch. NO TEXT. Just colors, gestural marks, arrows, and abstract shapes on colored paper. Raw, energetic, brainstorm energy.`,
 };
 
-// Brand palette for consistent visual identity
-const brandPalette = `Color palette: primarily #0A0A0A (near-black) and #F2EDE8 (warm off-white) with accent colors #C23B22 (propaganda red) and #C4A44A (institutional gold). Typography should suggest high-end serif for headlines and monospace for labels.`;
+// Brand palette
+const brandPalette = `Color palette: primarily deep blacks (#0A0A0A) and warm off-whites (#F2EDE8) with accent colors deep red (#C23B22) and institutional gold (#C4A44A). The mood is institutional gravitas meets high-end design.`;
 
 export async function POST(req: Request) {
   try {
@@ -35,39 +35,37 @@ export async function POST(req: Request) {
 
     const styleDirection = assetStyleDirections[assetType] || assetStyleDirections.ad_concept;
 
-    // Agent-specific creative direction
+    // Agent-specific visual direction
     const agentDirections: Record<string, string> = {
-      boris: 'Bold, theatrical, maximum impact. Every element should feel like a proclamation. Heavy type, strong contrast, no subtlety.',
-      nadia: 'Precise, data-informed, clinical elegance. Charts, statistics, structured grids. Cold beauty.',
-      gremlin: 'Chaotic but brilliant. Unexpected color choices, broken grids, raw texture. Feels alive and slightly unhinged.',
-      'the-archivist': 'Archival, documentary, institutional. Aged paper textures, footnote references, catalog numbering. Feels found.',
-      'comrade-pixel': 'Poetic, emotional, typographically exquisite. Every word placement is a design decision. Breathes.',
+      boris: 'Bold, theatrical, maximum visual impact. Strong contrast, dramatic lighting, powerful composition. Feels like a statement.',
+      nadia: 'Precise, clinical, elegant. Clean lines, structured composition, cool tones. Feels data-informed and controlled.',
+      gremlin: 'Chaotic but brilliant. Unexpected angles, raw textures, saturated color pops against dark backgrounds. Feels alive.',
+      'the-archivist': 'Archival, documentary. Aged textures, warm sepia tones, found-document aesthetic. Feels historical.',
+      'comrade-pixel': 'Poetic, emotional, ethereal. Soft focus areas, dramatic depth of field, intimate framing. Feels human.',
     };
 
     const agentStyle = agentDirections[agentId] || agentDirections.boris;
 
     const prompt = `${styleDirection}
 
-BRAND IDENTITY: ${brandPalette}
+VISUAL MOOD: ${brandPalette}
 
-CREATIVE DIRECTION (from the Art Director): ${agentStyle}
+CREATIVE DIRECTION: ${agentStyle}
 
-CAMPAIGN CONTEXT:
-- Client: ${company || 'Major corporation'}
-- Crisis scenario: ${scenario || 'Proactive apology campaign'}
-- Asset title: "${title}"
-- Asset copy/content: "${content?.slice(0, 300) || ''}"
+SUBJECT CONTEXT (for visual inspiration, NOT text):
+- This visual relates to: ${company || 'a major corporation'} facing ${scenario || 'a corporate crisis'}
+- The concept is called "${title}" — capture this FEELING visually, do not write these words
+- The visual should evoke: ${content?.slice(0, 200) || 'corporate accountability, institutional gravity, the weight of truth'}
 
-CRITICAL REQUIREMENTS:
-- This is a PROACTIVE APOLOGY campaign — the brand is getting ahead of a crisis
-- The visual tone is dead-serious institutional gravitas meets award-winning design
-- Include the headline "${title}" as prominent typography in the design
-- Reference the company name "${company}" somewhere in the composition
-- The output should look like it belongs in a design awards annual
-- Photorealistic rendering of the final produced piece (print-ready quality)
-- NO placeholder text, Lorem Ipsum, or generic stock imagery`;
+ABSOLUTE RULES:
+- ZERO text, words, letters, numbers, or typography anywhere in the image
+- NO logos, wordmarks, or brand names visible
+- Pure visual composition only — imagery, photography, texture, color, light
+- The image must work as a standalone visual without any text overlay
+- Award-winning visual quality — belongs in Communication Arts or D&AD annual
+- Photorealistic or high-end illustration style`;
 
-    // DALL-E 3 HD for final assets ($0.08), DALL-E 2 for drafts ($0.02)
+    // DALL-E 3 HD for final assets, DALL-E 2 for drafts
     const useDalle3 = isFinal === true;
     const response = useDalle3
       ? await client.images.generate({
@@ -80,7 +78,7 @@ CRITICAL REQUIREMENTS:
         })
       : await client.images.generate({
           model: 'dall-e-2',
-          prompt: prompt.slice(0, 1000), // DALL-E 2 has shorter prompt limit
+          prompt: prompt.slice(0, 1000),
           n: 1,
           size: '512x512',
         });
@@ -92,7 +90,7 @@ CRITICAL REQUIREMENTS:
       throw new Error('No image URL in response');
     }
 
-    // Fetch the image and convert to base64 data URI so it persists
+    // Convert to base64 data URI
     const imageResponse = await fetch(imageUrl);
     const imageBuffer = await imageResponse.arrayBuffer();
     const base64 = Buffer.from(imageBuffer).toString('base64');

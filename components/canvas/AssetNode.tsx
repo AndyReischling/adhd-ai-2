@@ -142,21 +142,29 @@ export default function AssetNode({ asset, onDragToAsset }: AssetNodeProps) {
           </div>
         )}
 
-        {/* ── Content: IMAGE or TEXT ── */}
+        {/* ── Content: IMAGE + TEXT OVERLAY or TEXT-ONLY ── */}
         {hasImage ? (
-          <div className="p-2">
-            <div className="font-mono text-[7px] tracking-[0.2em] text-gray-600 mb-1.5 px-1">
-              {typeLabel}
+          <div className="min-w-[220px] max-w-[240px]">
+            {/* Image with headline overlay */}
+            <div className="relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={asset.imageUrl}
+                alt={asset.title}
+                className="w-full block"
+              />
+              {/* Gradient overlay for text readability */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+              {/* Headline overlaid on image */}
+              <div className="absolute bottom-0 left-0 right-0 p-3">
+                <div className="font-mono text-[7px] tracking-[0.25em] text-gray-400 mb-1">
+                  {typeLabel}
+                </div>
+                <h4 className="font-display text-sm text-off-white leading-tight drop-shadow-md">
+                  {asset.title}
+                </h4>
+              </div>
             </div>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={asset.imageUrl}
-              alt={asset.title}
-              className="w-full rounded-sm"
-            />
-            <h4 className="font-display text-[11px] text-off-white mt-1.5 px-1 leading-tight">
-              {asset.title}
-            </h4>
           </div>
         ) : (
           <div className="p-3 min-w-[180px] max-w-[230px]">

@@ -10,7 +10,8 @@ export async function generateScenarios(company: Company): Promise<DoomsdayRespo
   });
 
   if (!res.ok) {
-    throw new Error('Failed to generate scenarios');
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData?.details || errorData?.error || `Scenarios API returned ${res.status}`);
   }
 
   return res.json();

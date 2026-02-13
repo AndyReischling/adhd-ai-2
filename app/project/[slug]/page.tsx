@@ -56,8 +56,9 @@ export default function AnalysisPage() {
         ];
         setScenarios(allScenarios);
       } catch (err) {
-        setError('THE APPARATUS HAS ENCOUNTERED A TEMPORARY CONTRADICTION. STAND BY.');
-        console.error(err);
+        const message = err instanceof Error ? err.message : String(err);
+        setError(message);
+        console.error('Scenario fetch error:', message);
       }
     };
 

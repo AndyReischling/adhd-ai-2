@@ -97,13 +97,14 @@ export async function generateImage(
   content: string,
   company: string,
   scenario: string,
-  agentId: string
+  agentId: string,
+  isFinal: boolean = false
 ): Promise<{ imageUrl: string | null; revisedPrompt?: string }> {
   try {
     const res = await fetch(`${API_BASE}/image`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ assetType, title, content, company, scenario, agentId }),
+      body: JSON.stringify({ assetType, title, content, company, scenario, agentId, isFinal }),
     });
 
     const data = await res.json();

@@ -36,9 +36,16 @@ export async function POST(req: Request) {
     const agentPrompt = loadPrompt(agentPromptFiles[agentId] || 'system-boris.txt');
     const taskPrompt = loadPrompt('task-asset.txt');
 
+    // Use Haiku for cheap asset types (sticky notes, text cards), Sonnet for premium
+    const cheapTypes = ['sticky_note', 'text_card'];
+    const model = cheapTypes.includes(assetType)
+      ? 'claude-3-5-haiku-20241022'
+      : 'claude-sonnet-4-20250514';
+    const maxTokens = cheapTypes.includes(assetType) ? 300 : 1500;
+
     const message = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1500,
+      model,
+      max_tokens: maxTokens,
       system: `${agentPrompt}\n\n${taskPrompt}`,
       messages: [
         {

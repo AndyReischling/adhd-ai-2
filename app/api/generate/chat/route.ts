@@ -105,9 +105,10 @@ export async function POST(req: Request) {
       userPrompt = `The team is starting work on the proactive apology campaign for ${context.company?.name || 'the company'}.\n\nScenario: ${context.scenarios?.map((s: { title: string }) => s.title).join(', ') || 'General threat'}\n\nShare your opening thoughts on the campaign approach. Be specific to this company and scenario.`;
     }
 
+    // Use Haiku for chat — 10x cheaper, still in-character
     const stream = client.messages.stream({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 400,
+      model: 'claude-3-5-haiku-20241022',
+      max_tokens: 300,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
     });

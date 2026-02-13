@@ -21,7 +21,7 @@ const brandPalette = `Color palette: primarily #0A0A0A (near-black) and #F2EDE8 
 
 export async function POST(req: Request) {
   try {
-    const { assetType, title, content, company, scenario, agentId } = await req.json();
+    const { assetType, title, content, company, scenario, agentId, isFinal } = await req.json();
 
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
@@ -67,14 +67,23 @@ CRITICAL REQUIREMENTS:
 - Photorealistic rendering of the final produced piece (print-ready quality)
 - NO placeholder text, Lorem Ipsum, or generic stock imagery`;
 
-    const response = await client.images.generate({
-      model: 'dall-e-3',
-      prompt,
-      n: 1,
-      size: '1024x1024',
-      quality: 'hd',
-      style: 'vivid',
-    });
+    // DALL-E 3 HD for final assets ($0.08), DALL-E 2 for drafts ($0.02)
+    const useDalle3 = isFinal === true;
+    const response = useDalle3
+      ? await client.images.generate({
+          model: 'dall-e-3',
+          prompt,
+          n: 1,
+          size: '1024x1024',
+          quality: 'hd',
+          style: 'vivid',
+        })
+      : await client.images.generate({
+          model: 'dall-e-2',
+          prompt: prompt.slice(0, 1000), // DALL-E 2 has shorter prompt limit
+          n: 1,
+          size: '512x512',
+        });
 
     const imageUrl = response.data?.[0]?.url;
     const revisedPrompt = response.data?.[0]?.revised_prompt;

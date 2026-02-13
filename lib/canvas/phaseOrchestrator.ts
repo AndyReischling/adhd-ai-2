@@ -120,28 +120,7 @@ async function createAssetFromAPI(
     callbacks.addAsset(asset);
     callbacks.setCursorState(agentId, 'working', pos);
 
-    // Trigger image generation in background for visual asset types
-    if (VISUAL_ASSET_TYPES.includes(assetType)) {
-      const scenarioTitle = context.scenarios?.[0]?.title || 'crisis scenario';
-      generateImage(
-        assetType,
-        asset.title,
-        asset.content,
-        context.company?.name || 'Company',
-        scenarioTitle,
-        agentId
-      ).then((result) => {
-        if (result.imageUrl) {
-          callbacks.updateAsset(asset.id, {
-            imageUrl: result.imageUrl,
-            imagePrompt: result.revisedPrompt,
-          });
-        }
-      }).catch((err) => {
-        console.error(`Image generation failed for ${asset.id}:`, err);
-      });
-    }
-
+    // Images are generated later during finalization phase (not on draft)
     return asset;
   } catch (err) {
     console.error(`[Asset] ${agentId}/${assetType} failed:`, err);
@@ -285,76 +264,49 @@ export class PhaseOrchestrator {
       this.callbacks.setCursorState(agentId, 'working');
     }
 
-    // Ad Concept 1
+    // Ad Concept 1 + Boris commentary
     await delay(3000);
-    await safe(() => addAgentChat('boris', this.callbacks, this.context), 'boris prod chat 1');
+    await safe(() => addAgentChat('boris', this.callbacks, this.context), 'boris prod');
     const ad1 = await safe(() => createAssetFromAPI('boris', 'ad_concept', 'production', this.callbacks, this.context), 'ad 1');
     if (ad1) this.createdAssets.push(ad1);
 
-    await delay(2000);
-    await safe(() => addAgentChat('gremlin', this.callbacks, this.context), 'gremlin react');
-
-    // Ad Concept 2
-    await delay(3000);
+    // Ad Concept 2 + OOH 1 (Gremlin works)
+    await delay(3500);
     const ad2 = await safe(() => createAssetFromAPI('gremlin', 'ad_concept', 'production', this.callbacks, this.context), 'ad 2');
     if (ad2) this.createdAssets.push(ad2);
-    await safe(() => addAgentChat('gremlin', this.callbacks, this.context), 'gremlin chat ad2');
+    await safe(() => addAgentChat('gremlin', this.callbacks, this.context), 'gremlin react');
 
-    if (ad1) {
-      this.callbacks.updateAssetState(ad1.id, 'review');
-      this.callbacks.setCursorState('boris', 'reviewing');
-    }
-
-    // OOH Mockup 1
-    await delay(4000);
-    await safe(() => addAgentChat('boris', this.callbacks, this.context), 'boris ooh chat');
+    await delay(3000);
     const ooh1 = await safe(() => createAssetFromAPI('gremlin', 'ooh_mockup', 'production', this.callbacks, this.context), 'ooh 1');
     if (ooh1) this.createdAssets.push(ooh1);
 
-    // Messaging Framework
+    // Messaging Framework (Nadia)
     await delay(3500);
-    await safe(() => addAgentChat('nadia', this.callbacks, this.context), 'nadia fw chat');
+    await safe(() => addAgentChat('nadia', this.callbacks, this.context), 'nadia fw');
     const mf = await safe(() => createAssetFromAPI('nadia', 'messaging_framework', 'production', this.callbacks, this.context), 'messaging fw');
     if (mf) this.createdAssets.push(mf);
 
-    // Ad Concept 3
+    // Ad Concept 3 (Comrade Pixel)
     await delay(3000);
     const ad3 = await safe(() => createAssetFromAPI('comrade-pixel', 'ad_concept', 'production', this.callbacks, this.context), 'ad 3');
     if (ad3) this.createdAssets.push(ad3);
-    await safe(() => addAgentChat('comrade-pixel', this.callbacks, this.context), 'pixel ad chat');
 
-    // OOH Mockup 2
-    await delay(3000);
-    const ooh2 = await safe(() => createAssetFromAPI('boris', 'ooh_mockup', 'production', this.callbacks, this.context), 'ooh 2');
-    if (ooh2) this.createdAssets.push(ooh2);
-
-    await delay(2000);
-    await safe(() => addAgentChat('the-archivist', this.callbacks, this.context), 'archivist prod');
-    await delay(1500);
-    await safe(() => addAgentChat('boris', this.callbacks, this.context), 'boris prod');
-
+    // Transition earlier assets to review
+    if (ad1) this.callbacks.updateAssetState(ad1.id, 'review');
     if (ad2) this.callbacks.updateAssetState(ad2.id, 'review');
-    if (ooh1) this.callbacks.updateAssetState(ooh1.id, 'review');
-    await delay(2000);
 
-    // Manifesto
-    await safe(() => addAgentChat('comrade-pixel', this.callbacks, this.context), 'pixel manifesto chat');
+    // Manifesto (Comrade Pixel)
+    await delay(3000);
+    await safe(() => addAgentChat('comrade-pixel', this.callbacks, this.context), 'pixel manifesto');
     const manifesto = await safe(() => createAssetFromAPI('comrade-pixel', 'manifesto', 'production', this.callbacks, this.context), 'manifesto');
     if (manifesto) this.createdAssets.push(manifesto);
 
-    await delay(3000);
+    // Final production debate
+    await delay(2500);
     await safe(() => addAgentChat('boris', this.callbacks, this.context), 'boris debate');
-    await delay(1500);
-    await safe(() => addAgentChat('gremlin', this.callbacks, this.context), 'gremlin debate');
-    await delay(1500);
-    await safe(() => addAgentChat('nadia', this.callbacks, this.context), 'nadia debate');
 
+    if (ooh1) this.callbacks.updateAssetState(ooh1.id, 'review');
     if (mf) this.callbacks.updateAssetState(mf.id, 'review');
-
-    // Ad Concept 4
-    await delay(3000);
-    const ad4 = await safe(() => createAssetFromAPI('boris', 'ad_concept', 'production', this.callbacks, this.context), 'ad 4');
-    if (ad4) this.createdAssets.push(ad4);
 
     await delay(2000);
   }
@@ -370,29 +322,53 @@ export class PhaseOrchestrator {
     await delay(2000);
     await safe(() => addAgentChat('boris', this.callbacks, this.context), 'boris final');
 
-    // Approve all non-sticky assets
+    // Approve all non-sticky assets and generate images for visual ones
     await delay(2000);
+    const imagePromises: Promise<void>[] = [];
+
     for (const asset of this.createdAssets) {
       if (asset.type !== 'sticky_note') {
         try {
           this.callbacks.updateAssetState(asset.id, 'final');
         } catch { /* ignore */ }
-        await delay(800);
+
+        // Generate images only for final visual assets (not text cards)
+        if (VISUAL_ASSET_TYPES.includes(asset.type)) {
+          const scenarioTitle = this.context.scenarios?.[0]?.title || 'crisis scenario';
+          const imgPromise = generateImage(
+            asset.type,
+            asset.title,
+            asset.content,
+            this.context.company?.name || 'Company',
+            scenarioTitle,
+            asset.createdBy,
+            true // isFinal — uses DALL-E 3 HD
+          ).then((result) => {
+            if (result.imageUrl) {
+              this.callbacks.updateAsset(asset.id, {
+                imageUrl: result.imageUrl,
+                imagePrompt: result.revisedPrompt,
+              });
+            }
+          }).catch((err) => {
+            console.error(`Image generation failed for ${asset.id}:`, err);
+          });
+          imagePromises.push(imgPromise);
+        }
+
+        await delay(600);
       }
     }
 
-    await delay(1500);
     await safe(() => addAgentChat('comrade-pixel', this.callbacks, this.context), 'pixel final');
-    await delay(2000);
-    await safe(() => addAgentChat('nadia', this.callbacks, this.context), 'nadia final');
     await delay(1500);
-    await safe(() => addAgentChat('the-archivist', this.callbacks, this.context), 'archivist final');
-    await delay(1000);
-    await safe(() => addAgentChat('gremlin', this.callbacks, this.context), 'gremlin final');
+    await safe(() => addAgentChat('nadia', this.callbacks, this.context), 'nadia final');
     await delay(1500);
     await safe(() => addAgentChat('boris', this.callbacks, this.context), 'boris closing');
 
-    await delay(2000);
+    // Wait for images to finish generating (they run in parallel)
+    await Promise.allSettled(imagePromises);
+    await delay(1000);
   }
 
   // ─────── PHASE 5: EXPORT ───────

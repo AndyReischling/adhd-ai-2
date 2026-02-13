@@ -82,9 +82,10 @@ async function addAgentChat(
       });
     }
   } catch (err) {
-    console.error(`[Chat] ${agentId} failed:`, err);
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error(`[Chat] ${agentId} failed:`, errMsg);
     callbacks.updateChatMessage(id, {
-      content: 'THE APPARATUS IS EXPERIENCING A MOMENTARY RECALIBRATION.',
+      content: `[ERROR: ${errMsg}]`,
       isComplete: true,
     });
   }

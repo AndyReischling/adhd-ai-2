@@ -34,7 +34,10 @@ export async function streamChat(
     body: JSON.stringify({ agentId, conversationHistory, context }),
   });
 
-  if (!res.ok) throw new Error('Chat generation failed');
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData?.error || `Chat API returned ${res.status}`);
+  }
   if (!res.body) throw new Error('No response body');
 
   const reader = res.body.getReader();

@@ -147,8 +147,9 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error('Chat error:', error);
+    const details = String(error);
     return new Response(
-      JSON.stringify({ error: 'THE APPARATUS HAS ENCOUNTERED A TEMPORARY CONTRADICTION' }),
+      JSON.stringify({ error: details }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }

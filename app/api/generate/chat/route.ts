@@ -74,33 +74,34 @@ export async function POST(req: Request) {
       phase: context.phase,
     });
 
-    // Build conversation transcript as a single context block for Claude
-    const recentHistory = (conversationHistory || []).slice(-25);
+    // Build conversation transcript — guard every field access
+    const recentHistory = (conversationHistory || [])
+      .filter((m: { agentId?: string; content?: string }) => m && m.agentId && m.content)
+      .slice(-25);
+
     const transcript = recentHistory
       .map((msg: { agentId: string; content: string }) => {
         if (msg.agentId === 'user') return `[USER]: ${msg.content}`;
-        const name = agentNames[msg.agentId] || msg.agentId.toUpperCase();
+        const name = agentNames[msg.agentId] || String(msg.agentId || 'AGENT').toUpperCase();
         return `[${name}]: ${msg.content}`;
       })
       .join('\n\n');
 
-    // Find the last user message if any
     const lastUserMsg = [...recentHistory]
       .reverse()
       .find((m: { agentId: string }) => m.agentId === 'user');
 
-    // Find the last few agent messages to know what was recently discussed
     const lastAgentMsgs = recentHistory
-      .filter((m: { agentId: string }) => m.agentId !== 'user')
+      .filter((m: { agentId: string }) => m.agentId && m.agentId !== 'user')
       .slice(-3);
 
     let userPrompt: string;
     if (lastUserMsg) {
-      userPrompt = `Here is the conversation so far:\n\n${transcript}\n\nThe human user just said: "${lastUserMsg.content}"\n\nRespond directly to the user's message. Be specific and helpful while staying in character as ${agentNames[agentId] || agentId}.`;
+      userPrompt = `Here is the conversation so far:\n\n${transcript}\n\nThe human user just said: "${lastUserMsg.content || ''}"\n\nRespond directly to the user's message. Be specific and helpful while staying in character as ${agentNames[agentId] || agentId || 'the agent'}.`;
     } else if (lastAgentMsgs.length > 0) {
       const lastAgent = lastAgentMsgs[lastAgentMsgs.length - 1];
-      const lastName = agentNames[lastAgent.agentId] || lastAgent.agentId;
-      userPrompt = `Here is the conversation so far:\n\n${transcript}\n\n${lastName} just said: "${lastAgent.content}"\n\nReact to what was just said. Build on, critique, agree, or redirect the conversation. Add something new and specific to the ${context.company?.name || 'company'} campaign. Do NOT repeat anything already said.`;
+      const lastName = agentNames[lastAgent?.agentId] || String(lastAgent?.agentId || 'AGENT');
+      userPrompt = `Here is the conversation so far:\n\n${transcript}\n\n${lastName} just said: "${lastAgent?.content || ''}"\n\nReact to what was just said. Build on, critique, agree, or redirect the conversation. Add something new and specific to the ${context.company?.name || 'company'} campaign. Do NOT repeat anything already said.`;
     } else {
       userPrompt = `The team is starting work on the proactive apology campaign for ${context.company?.name || 'the company'}.\n\nScenario: ${context.scenarios?.map((s: { title: string }) => s.title).join(', ') || 'General threat'}\n\nShare your opening thoughts on the campaign approach. Be specific to this company and scenario.`;
     }

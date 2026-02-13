@@ -1,6 +1,5 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
 import { ChatMessage as ChatMessageType } from '@/types';
 import { getAgent } from '@/lib/agents';
 
@@ -9,23 +8,25 @@ interface ChatMessageProps {
 }
 
 export default function ChatMessage({ message }: ChatMessageProps) {
-  const prevLenRef = useRef(0);
+  // Guard against undefined/malformed messages
+  if (!message || !message.agentId) return null;
+
+  const content = message.content || '';
   const isUser = message.agentId === 'user';
   const agent = !isUser ? getAgent(message.agentId) : null;
   const agentColor = agent?.color || '#F2EDE8';
-
-  // Track content length so we know it's streaming
-  useEffect(() => {
-    prevLenRef.current = message.content.length;
-  }, [message.content]);
-
   const isStreaming = !message.isComplete && !isUser;
 
-  const timestamp = new Date(message.timestamp).toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
+  let timestamp = '';
+  try {
+    timestamp = new Date(message.timestamp).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+  } catch {
+    timestamp = '';
+  }
 
   if (isUser) {
     return (
@@ -39,11 +40,13 @@ export default function ChatMessage({ message }: ChatMessageProps) {
           </span>
         </div>
         <p className="font-mono text-sm text-gray-200 leading-relaxed whitespace-pre-wrap">
-          {message.content}
+          {content}
         </p>
       </div>
     );
   }
+
+  const displayName = agent?.name || (message.agentId || 'AGENT').toUpperCase();
 
   return (
     <div className="px-4 py-3">
@@ -52,7 +55,7 @@ export default function ChatMessage({ message }: ChatMessageProps) {
           className="font-mono text-[11px] tracking-[0.15em] font-bold"
           style={{ color: agentColor }}
         >
-          {agent?.name || message.agentId.toUpperCase()}
+          {displayName}
         </span>
         <span className="font-mono text-[10px] text-gray-600">
           {timestamp}
@@ -63,8 +66,7 @@ export default function ChatMessage({ message }: ChatMessageProps) {
         style={{ backgroundColor: `${agentColor}30` }}
       />
       <p className="font-mono text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">
-        {/* Just show the content directly — streaming already provides the type-on effect */}
-        {message.content}
+        {content}
         {isStreaming && (
           <span
             className="inline-block w-[2px] h-[1em] ml-0.5 align-middle"

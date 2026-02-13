@@ -245,7 +245,7 @@ export default function CanvasPage() {
           <span className="font-mono text-[10px] text-green-terminal tracking-wider">Phase {Math.min(Math.max(phaseIndex, 0), 4)}/4</span>
         </div>
         <div className="flex-1 overflow-y-auto">
-          {(chatMessages || []).map((msg) => (
+          {(chatMessages || []).filter((msg) => msg && msg.agentId).map((msg) => (
             <ChatMessageComponent key={msg.id} message={msg} />
           ))}
           <div ref={messagesEndRef} />

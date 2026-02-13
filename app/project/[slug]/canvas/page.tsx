@@ -49,6 +49,16 @@ export default function CanvasPage() {
   const [cursorEngine, setCursorEngine] = useState<CursorEngine | null>(null);
   const [showCombineIndicator, setShowCombineIndicator] = useState(false);
   const [isCombining, setIsCombining] = useState(false);
+  const [showCompleteBanner, setShowCompleteBanner] = useState(false);
+
+  // Auto-show and auto-dismiss the "CAMPAIGN COMPLETE" banner
+  useEffect(() => {
+    if (isComplete) {
+      setShowCompleteBanner(true);
+      const timer = setTimeout(() => setShowCompleteBanner(false), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [isComplete]);
 
   // Redirect if no company
   useEffect(() => {
@@ -264,8 +274,14 @@ export default function CanvasPage() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {isComplete && (
-          <motion.div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[150] pointer-events-none" initial={{ opacity: 0, scale: 3, rotate: -15 }} animate={{ opacity: 1, scale: 1, rotate: -3 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}>
+        {showCompleteBanner && (
+          <motion.div
+            className="fixed top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[150] pointer-events-none"
+            initial={{ opacity: 0, scale: 3, rotate: -15 }}
+            animate={{ opacity: 1, scale: 1, rotate: -3 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          >
             <div className="border-4 border-gold-accent px-12 py-6 bg-black-primary/90 backdrop-blur-sm">
               <div className="font-accent text-3xl md:text-5xl tracking-[0.3em] text-gold-accent text-center">CAMPAIGN COMPLETE</div>
               <div className="font-mono text-xs text-gray-400 text-center mt-2 tracking-[0.2em]">THE COLLECTIVE HAS DELIVERED</div>

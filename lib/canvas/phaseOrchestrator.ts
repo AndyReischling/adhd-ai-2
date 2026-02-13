@@ -189,30 +189,26 @@ export class PhaseOrchestrator {
       this.callbacks.setCursorState(agentId, 'discussing');
     }
 
-    await delay(2000);
+    await delay(4000);
     await safe(() => addAgentChat('the-archivist', this.callbacks, this.context), 'archivist chat 1');
     const r1 = await safe(() => createAssetFromAPI('the-archivist', 'text_card', 'research', this.callbacks, this.context), 'archivist asset 1');
     if (r1) this.createdAssets.push(r1);
 
-    await delay(3000);
-    await safe(() => addAgentChat('the-archivist', this.callbacks, this.context), 'archivist chat 2');
-    const r2 = await safe(() => createAssetFromAPI('the-archivist', 'text_card', 'research', this.callbacks, this.context), 'archivist asset 2');
-    if (r2) this.createdAssets.push(r2);
-
-    await delay(2500);
+    await delay(5000);
     await safe(() => addAgentChat('nadia', this.callbacks, this.context), 'nadia chat 1');
     const n1 = await safe(() => createAssetFromAPI('nadia', 'text_card', 'research', this.callbacks, this.context), 'nadia asset 1');
     if (n1) this.createdAssets.push(n1);
 
-    await delay(3000);
+    await delay(5000);
     await safe(() => addAgentChat('boris', this.callbacks, this.context), 'boris chat 1');
 
-    await delay(1500);
+    await delay(4000);
     await safe(() => addAgentChat('gremlin', this.callbacks, this.context), 'gremlin chat 1');
-    await delay(1000);
+
+    await delay(4000);
     await safe(() => addAgentChat('comrade-pixel', this.callbacks, this.context), 'pixel chat 1');
 
-    await delay(2000);
+    await delay(3000);
   }
 
   // ─────── PHASE 2: IDEATION ───────
@@ -223,38 +219,30 @@ export class PhaseOrchestrator {
       this.callbacks.setCursorState(agentId, 'creating');
     }
 
-    await delay(2000);
+    await delay(4000);
     await safe(() => createAssetFromAPI('gremlin', 'sticky_note', 'ideation', this.callbacks, this.context), 'gremlin sticky');
     await safe(() => addAgentChat('gremlin', this.callbacks, this.context), 'gremlin chat');
 
-    await delay(2000);
+    await delay(5000);
     await safe(() => createAssetFromAPI('boris', 'sticky_note', 'ideation', this.callbacks, this.context), 'boris sticky');
     await safe(() => addAgentChat('boris', this.callbacks, this.context), 'boris chat');
 
-    await delay(2000);
+    await delay(5000);
     await safe(() => createAssetFromAPI('comrade-pixel', 'sticky_note', 'ideation', this.callbacks, this.context), 'pixel sticky');
     await safe(() => addAgentChat('comrade-pixel', this.callbacks, this.context), 'pixel chat');
 
-    await delay(3000);
+    await delay(5000);
     await safe(() => createAssetFromAPI('nadia', 'sticky_note', 'ideation', this.callbacks, this.context), 'nadia sticky');
     await safe(() => addAgentChat('nadia', this.callbacks, this.context), 'nadia chat');
 
-    await delay(2500);
+    await delay(4000);
     await safe(() => createAssetFromAPI('the-archivist', 'sticky_note', 'ideation', this.callbacks, this.context), 'archivist sticky');
 
-    await delay(2000);
-    await safe(() => createAssetFromAPI('gremlin', 'sticky_note', 'ideation', this.callbacks, this.context), 'gremlin sticky 2');
-    await safe(() => addAgentChat('gremlin', this.callbacks, this.context), 'gremlin chat 2');
-
-    await delay(3000);
-    await safe(() => createAssetFromAPI('comrade-pixel', 'sticky_note', 'ideation', this.callbacks, this.context), 'pixel sticky 2');
-    await safe(() => addAgentChat('comrade-pixel', this.callbacks, this.context), 'pixel chat 2');
-
-    await delay(2000);
+    await delay(5000);
     await safe(() => addAgentChat('boris', this.callbacks, this.context), 'boris critique');
     await safe(() => createAssetFromAPI('boris', 'sticky_note', 'ideation', this.callbacks, this.context), 'boris sticky 2');
 
-    await delay(3000);
+    await delay(4000);
   }
 
   // ─────── PHASE 3: PRODUCTION ───────
@@ -265,51 +253,52 @@ export class PhaseOrchestrator {
       this.callbacks.setCursorState(agentId, 'working');
     }
 
-    // Ad Concept 1 + Boris commentary
-    await delay(3000);
+    // Ad Concept 1
+    await delay(5000);
     await safe(() => addAgentChat('boris', this.callbacks, this.context), 'boris prod');
     const ad1 = await safe(() => createAssetFromAPI('boris', 'ad_concept', 'production', this.callbacks, this.context), 'ad 1');
     if (ad1) this.createdAssets.push(ad1);
 
-    // Ad Concept 2 + OOH 1 (Gremlin works)
-    await delay(3500);
+    // Ad Concept 2
+    await delay(6000);
     const ad2 = await safe(() => createAssetFromAPI('gremlin', 'ad_concept', 'production', this.callbacks, this.context), 'ad 2');
     if (ad2) this.createdAssets.push(ad2);
     await safe(() => addAgentChat('gremlin', this.callbacks, this.context), 'gremlin react');
 
-    await delay(3000);
+    // OOH Mockup
+    await delay(6000);
     const ooh1 = await safe(() => createAssetFromAPI('gremlin', 'ooh_mockup', 'production', this.callbacks, this.context), 'ooh 1');
     if (ooh1) this.createdAssets.push(ooh1);
 
-    // Messaging Framework (Nadia)
-    await delay(3500);
+    // Messaging Framework
+    await delay(6000);
     await safe(() => addAgentChat('nadia', this.callbacks, this.context), 'nadia fw');
     const mf = await safe(() => createAssetFromAPI('nadia', 'messaging_framework', 'production', this.callbacks, this.context), 'messaging fw');
     if (mf) this.createdAssets.push(mf);
 
-    // Ad Concept 3 (Comrade Pixel)
-    await delay(3000);
+    // Ad Concept 3
+    await delay(5000);
     const ad3 = await safe(() => createAssetFromAPI('comrade-pixel', 'ad_concept', 'production', this.callbacks, this.context), 'ad 3');
     if (ad3) this.createdAssets.push(ad3);
 
-    // Transition earlier assets to review
+    // Transition to review
     if (ad1) this.callbacks.updateAssetState(ad1.id, 'review');
     if (ad2) this.callbacks.updateAssetState(ad2.id, 'review');
 
-    // Manifesto (Comrade Pixel)
-    await delay(3000);
+    // Manifesto
+    await delay(6000);
     await safe(() => addAgentChat('comrade-pixel', this.callbacks, this.context), 'pixel manifesto');
     const manifesto = await safe(() => createAssetFromAPI('comrade-pixel', 'manifesto', 'production', this.callbacks, this.context), 'manifesto');
     if (manifesto) this.createdAssets.push(manifesto);
 
-    // Final production debate
-    await delay(2500);
+    // Final production comment
+    await delay(5000);
     await safe(() => addAgentChat('boris', this.callbacks, this.context), 'boris debate');
 
     if (ooh1) this.callbacks.updateAssetState(ooh1.id, 'review');
     if (mf) this.callbacks.updateAssetState(mf.id, 'review');
 
-    await delay(2000);
+    await delay(3000);
   }
 
   // ─────── PHASE 4: FINALIZATION ───────
